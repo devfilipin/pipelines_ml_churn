@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ambiente virtual
+.venv/
+venv/
+
+# VSCode
+.vscode/
+
+# Sistema
+.DS_Store
+
+# Variáveis sensíveis
+.env
+
+# Arquivos gerados
+data/treino_teste/
