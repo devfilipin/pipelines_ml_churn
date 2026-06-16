@@ -2,6 +2,15 @@ from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from base_telco import ARQUIVO_DESTINO, baixar_telco_churn
+from config import (
+    COLUNA_TOTAL_CHARGES,
+    PASTA_TREINO_TESTE,
+    SEMENTE_ALEATORIA,
+    X_TEST_PATH,
+    X_TRAIN_PATH,
+    Y_TEST_PATH,
+    Y_TRAIN_PATH,
+)
 
 
 # Coluna que queremos prever nos modelos de IA.
@@ -10,18 +19,15 @@ COLUNA_ALVO = "Churn"
 # Conversão da variável alvo: No vira 0 e Yes vira 1.
 MAPA_CHURN = {"No": 0, "Yes": 1}
 
-# customerID é apenas um identificador do cliente, não uma característica útil
-# para treinar o modelo.
-COLUNAS_REMOVER = ["customerID"]
+# Essas colunas são apenas identificadores, não características úteis para
+# treinar o modelo.
+COLUNAS_REMOVER = ["LoyaltyID", "Customer ID", "customerID"]
 
 # 20% da base será reservado para teste e 80% ficará para treinamento.
 TAMANHO_TESTE = 0.2
 
-# A semente garante que a divisão seja sempre igual a cada execução.
-SEMENTE_ALEATORIA = 42
-
 # Pasta onde os arquivos de treino e teste serão salvos.
-PASTA_SAIDA = Path("data") / "treino_teste"
+PASTA_SAIDA = PASTA_TREINO_TESTE
 
 
 def carregar_base() -> pd.DataFrame:
@@ -31,6 +37,23 @@ def carregar_base() -> pd.DataFrame:
 
     # Caso contrário, usamos a função do base_telco.py para baixar a base.
     return baixar_telco_churn()
+
+
+def converter_total_charges(df: pd.DataFrame) -> pd.DataFrame:
+    # Total Charges vem como texto na base original; espaços vazios viram NaN.
+    if COLUNA_TOTAL_CHARGES not in df.columns:
+        raise ValueError(f"A coluna '{COLUNA_TOTAL_CHARGES}' não existe na base.")
+
+    df = df.copy()
+    df[COLUNA_TOTAL_CHARGES] = pd.to_numeric(
+        df[COLUNA_TOTAL_CHARGES].astype(str).str.strip().replace("", pd.NA),
+        errors="coerce",
+    )
+
+    if not pd.api.types.is_numeric_dtype(df[COLUNA_TOTAL_CHARGES]):
+        raise ValueError(f"A coluna '{COLUNA_TOTAL_CHARGES}' não está numérica.")
+
+    return df
 
 
 def separar_treino_teste(
@@ -44,7 +67,7 @@ def separar_treino_teste(
         raise ValueError(f"A coluna alvo '{coluna_alvo}' não existe na base.")
 
     # Converte a coluna alvo para valores numéricos antes de treinar o modelo.
-    df = df.copy()
+    df = converter_total_charges(df)
     df[coluna_alvo] = df[coluna_alvo].map(MAPA_CHURN)
 
     if df[coluna_alvo].isna().any():
@@ -81,10 +104,21 @@ def salvar_conjuntos(
 
     # Salva entradas (X) e respostas (y) separadamente para facilitar o uso
     # posterior em modelos de machine learning.
-    x_train.to_csv(pasta_saida / "X_train.csv", index=False)
-    x_test.to_csv(pasta_saida / "X_test.csv", index=False)
-    y_train.to_csv(pasta_saida / "y_train.csv", index=False)
-    y_test.to_csv(pasta_saida / "y_test.csv", index=False)
+    if pasta_saida == PASTA_TREINO_TESTE:
+        x_train_path = X_TRAIN_PATH
+        x_test_path = X_TEST_PATH
+        y_train_path = Y_TRAIN_PATH
+        y_test_path = Y_TEST_PATH
+    else:
+        x_train_path = pasta_saida / X_TRAIN_PATH.name
+        x_test_path = pasta_saida / X_TEST_PATH.name
+        y_train_path = pasta_saida / Y_TRAIN_PATH.name
+        y_test_path = pasta_saida / Y_TEST_PATH.name
+
+    x_train.to_csv(x_train_path, index=False)
+    x_test.to_csv(x_test_path, index=False)
+    y_train.to_csv(y_train_path, index=False)
+    y_test.to_csv(y_test_path, index=False)
 
 
 def main() -> None:

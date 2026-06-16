@@ -1,23 +1,32 @@
-import requests
 from pathlib import Path
 import pandas as pd
 
 
-URL = "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv"
-
 PASTA_DESTINO = Path("data")
+ARQUIVO_CUSTOMER_CHURN = PASTA_DESTINO / "CustomerChurn.xlsx"
+ARQUIVO_DEMOGRAFICO = PASTA_DESTINO / "Telco_customer_churn_demographics.xlsx"
 ARQUIVO_DESTINO = PASTA_DESTINO / "Telco-Customer-Churn.csv"
+COLUNA_CHAVE = "Customer ID"
+COLUNAS_DEMOGRAFICAS = [COLUNA_CHAVE, "Gender", "Age"]
 
 
-def baixar_telco_churn():
+def consolidar_telco_churn() -> pd.DataFrame:
     PASTA_DESTINO.mkdir(parents=True, exist_ok=True)
 
-    response = requests.get(URL, timeout=30)
-    response.raise_for_status()
+    df_churn = pd.read_excel(ARQUIVO_CUSTOMER_CHURN)
+    df_demografico = pd.read_excel(ARQUIVO_DEMOGRAFICO, usecols=COLUNAS_DEMOGRAFICAS)
 
-    ARQUIVO_DESTINO.write_bytes(response.content)
+    df = df_churn.merge(
+        df_demografico,
+        on=COLUNA_CHAVE,
+        how="left",
+        validate="one_to_one",
+    )
 
-    df = pd.read_csv(ARQUIVO_DESTINO)
+    if df[["Gender", "Age"]].isna().any(axis=1).any():
+        raise ValueError("Existem clientes sem Gender ou Age após a consolidação.")
+
+    df.to_csv(ARQUIVO_DESTINO, index=False)
 
     print("\nPrévia da base:")
     print(df.head())
@@ -34,5 +43,9 @@ def baixar_telco_churn():
     return df
 
 
+def baixar_telco_churn() -> pd.DataFrame:
+    return consolidar_telco_churn()
+
+
 if __name__ == "__main__":
-    df = baixar_telco_churn()
+    df = consolidar_telco_churn()

@@ -1,110 +1,205 @@
-# Pipelines de Machine Learning para Predição de Churn
+# Predição de Customer Churn em Telecomunicações
 
-Este repositório contém os códigos utilizados para carregar, preparar e dividir a base de dados **Telco Customer Churn** em conjuntos de treino e teste. O objetivo é organizar o pipeline inicial de experimentos de Machine Learning aplicados à predição de churn de clientes.
+Este projeto desenvolve um fluxo experimental de machine learning para prever **customer churn** no setor de telecomunicações, usando o **Telco Customer Churn Dataset da IBM**.
 
-## Objetivo do projeto
+O objetivo é comparar diferentes modelos supervisionados, avaliar cenários de balanceamento de classes, otimizar os melhores candidatos e identificar o modelo com melhor desempenho para prever clientes com maior risco de cancelamento.
 
-O projeto tem como finalidade preparar a base de dados para experimentos de classificação, permitindo a construção posterior de modelos preditivos capazes de identificar clientes com maior probabilidade de churn.
-
-Nesta etapa, o repositório contempla:
-
-* carregamento da base de dados;
-* tratamento inicial dos dados;
-* separação entre variáveis preditoras e variável alvo;
-* divisão da base em treino e teste;
-* geração dos arquivos `X_train`, `X_test`, `y_train` e `y_test`.
-
-## Estrutura do projeto
+## Estrutura de Pastas
 
 ```text
 .
 ├── base_telco.py
 ├── dividir_treino_teste.py
+├── preprocessamento.py
+├── treinar_baselines.py
+├── selecionar_melhores.py
+├── otimizar_modelos.py
+├── avaliar_final.py
+├── interpretar_modelo.py
+├── config.py
+├── requirements.txt
 ├── data/
+│   ├── CustomerChurn.xlsx
+│   ├── Telco_customer_churn_demographics.xlsx
 │   ├── Telco-Customer-Churn.csv
 │   └── treino_teste/
 │       ├── X_train.csv
 │       ├── X_test.csv
 │       ├── y_train.csv
 │       └── y_test.csv
-├── .gitignore
-└── README.md
+└── results/
+    ├── metrics/
+    ├── figures/
+    └── models/
 ```
 
-## Arquivos principais
+## Ordem de Execução
 
-### `base_telco.py`
-
-Script responsável por carregar e preparar a base de dados Telco Customer Churn.
-
-### `dividir_treino_teste.py`
-
-Script responsável por dividir a base em conjuntos de treino e teste, gerando os arquivos separados para as variáveis independentes e para a variável alvo.
-
-### `data/Telco-Customer-Churn.csv`
-
-Base de dados original utilizada no projeto.
-
-### `data/treino_teste/`
-
-Pasta gerada após a execução do script de divisão da base. Ela contém os arquivos separados para treino e teste.
-
-## Base de dados
-
-A base utilizada neste projeto é a **Telco Customer Churn**, uma base pública amplamente utilizada em estudos de predição de churn.
-
-Ela contém informações relacionadas ao perfil dos clientes, serviços contratados, dados de cobrança e a indicação de churn.
-
-## Como executar o projeto
-
-Primeiro, clone este repositório:
-
-```bash
-git clone https://github.com/devfilipin/pipelines_ml_churn.git
-```
-
-Acesse a pasta do projeto:
-
-```bash
-cd pipelines_ml_churn
-```
-
-Instale as dependências necessárias:
+Instale as dependências:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Execute o script de preparação da base:
+Execute os scripts nesta ordem:
 
 ```bash
 python base_telco.py
-```
-
-Depois, execute o script de divisão em treino e teste:
-
-```bash
 python dividir_treino_teste.py
+python treinar_baselines.py
+python selecionar_melhores.py
+python otimizar_modelos.py
+python avaliar_final.py
+python interpretar_modelo.py
 ```
 
-Após a execução, os arquivos resultantes serão gerados na pasta:
+## Descrição dos Scripts
+
+### `base_telco.py`
+
+Consolida as bases originais em `data/Telco-Customer-Churn.csv`, juntando os dados principais de churn com informações demográficas.
+
+### `dividir_treino_teste.py`
+
+Divide a base consolidada em treino e teste, separando variáveis preditoras e variável alvo.
+
+Arquivos gerados:
 
 ```text
-data/treino_teste/
+data/treino_teste/X_train.csv
+data/treino_teste/X_test.csv
+data/treino_teste/y_train.csv
+data/treino_teste/y_test.csv
 ```
+
+### `preprocessamento.py`
+
+Define funções reutilizáveis para carregar os conjuntos de treino e teste, identificar colunas numéricas e categóricas, e criar o pré-processador usado dentro dos pipelines.
+
+### `treinar_baselines.py`
+
+Treina e avalia modelos baseline usando validação cruzada estratificada em diferentes cenários de balanceamento:
+
+* sem balanceamento;
+* pesos de classe;
+* SMOTE;
+* SMOTE-Tomek;
+* SMOTE-ENN.
+
+Arquivo gerado:
+
+```text
+results/metrics/baseline_results.csv
+```
+
+### `selecionar_melhores.py`
+
+Seleciona os 3 melhores candidatos para otimização de hiperparâmetros com base nas métricas de validação cruzada.
+
+Arquivo gerado:
+
+```text
+results/metrics/selected_models.csv
+```
+
+### `otimizar_modelos.py`
+
+Executa `RandomizedSearchCV` nos modelos selecionados, usando apenas o conjunto de treino.
+
+Arquivos gerados:
+
+```text
+results/metrics/optimized_results.csv
+results/metrics/best_params.csv
+results/models/*.joblib
+```
+
+### `avaliar_final.py`
+
+Seleciona o melhor modelo otimizado e realiza a avaliação final no conjunto de teste independente.
+
+Arquivos gerados:
+
+```text
+results/metrics/final_test_metrics.csv
+results/metrics/final_predictions.csv
+results/figures/confusion_matrix_best_model.png
+results/figures/roc_curve_best_model.png
+results/figures/pr_curve_best_model.png
+```
+
+### `interpretar_modelo.py`
+
+Gera análise de interpretabilidade do melhor modelo, usando SHAP quando possível e importância por permutação como alternativa.
+
+Arquivos gerados:
+
+```text
+results/metrics/feature_importance.csv
+results/figures/feature_importance.png
+results/figures/shap_summary.png
+```
+
+## Arquivos Gerados
+
+### Métricas
+
+Os arquivos de métricas são salvos em:
+
+```text
+results/metrics/
+```
+
+Essa pasta contém resultados de validação cruzada, modelos selecionados, melhores parâmetros, métricas finais no teste e predições finais.
+
+### Figuras
+
+As figuras são salvas em:
+
+```text
+results/figures/
+```
+
+Essa pasta contém matriz de confusão, curva ROC, curva Precision-Recall e gráficos de interpretabilidade.
+
+### Modelos Salvos
+
+Os modelos otimizados são salvos em:
+
+```text
+results/models/
+```
+
+Cada modelo é salvo em formato `.joblib`.
+
+## Observações Metodológicas
+
+O conjunto de teste é usado somente na etapa de avaliação final, em `avaliar_final.py`. As etapas de baseline, seleção e otimização usam apenas dados de treino e validação cruzada.
+
+O balanceamento de classes é aplicado somente dentro dos pipelines de treinamento. Isso evita vazamento de dados entre treino e validação.
+
+A métrica principal do projeto é o **F1-score da classe churn**, pois o problema envolve uma classe positiva de maior interesse e desbalanceamento entre clientes que cancelam e não cancelam.
+
+Além do F1-score, também são analisados **recall da classe churn** e **PR-AUC**. Essas métricas são importantes porque falsos negativos podem ter custo alto: um cliente propenso a churn pode não ser identificado a tempo para uma ação de retenção.
+
+## Dependências Principais
+
+* pandas
+* scikit-learn
+* imbalanced-learn
+* xgboost
+* lightgbm
+* catboost
+* shap
+* matplotlib
+* joblib
 
 ## Reprodutibilidade
 
-A divisão da base em treino e teste deve utilizar uma semente aleatória fixa, permitindo que os resultados possam ser reproduzidos em diferentes execuções.
+A semente aleatória do projeto é definida em `config.py`:
 
-## Tecnologias utilizadas
+```python
+SEMENTE_ALEATORIA = 42
+```
 
-* Python
-* Pandas
-* Scikit-learn
-
-## Status do projeto
-
-Projeto em desenvolvimento.
-
-Atualmente, o repositório contempla a etapa inicial do pipeline de Machine Learning, incluindo preparação e divisão da base de dados. As próximas etapas incluem treinamento, avaliação e comparação de modelos preditivos para churn.
+Essa configuração é usada na divisão treino/teste, validação cruzada, balanceamento e modelos sempre que aplicável.
